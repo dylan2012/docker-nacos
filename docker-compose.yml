@@ -1,0 +1,72 @@
+version: "2"
+services:
+  nacos:
+    image: nacos/nacos-server:latest
+    container_name: nacos-standalone-mysql
+    env_file:
+      - ./env/nacos-standlone-mysql.env
+    volumes:
+      - ./standalone-logs/:/home/nacos/logs
+      - ./init.d/custom.properties:/home/nacos/init.d/custom.properties
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "8848:8848"
+      - "9555:9555"
+    depends_on:
+      - mysql
+    restart: on-failure
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200M"
+  mysql:
+    container_name: mysql
+    image: nacos/nacos-mysql:5.7
+    env_file:
+      - ./env/mysql.env
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3306:3306"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200M"
+  zipkin:
+    restart: on-failure
+    privileged: true
+    container_name: zipkin
+    image: openzipkin/zipkin
+    environment:
+      - STORAGE_TYPE=mysql
+      - MYSQL_DB=zipkin
+      - MYSQL_USER=root
+      - MYSQL_PASS=rrr888999
+      - MYSQL_HOST=mysql
+      - MYSQL_TCP_PORT=3306
+    ports:
+      - "9411:9411"
+    depends_on:
+      - mysql
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200M"
+
+  sentinel:
+    restart: on-failure
+    #network_mode: host
+    privileged: true
+    container_name: sentinel
+    image: bladex/sentinel-dashboard
+    ports:
+      - "8858:8858"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200M"
